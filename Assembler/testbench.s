@@ -1,7 +1,7 @@
-000 sum
+000 main
 001   xorq rax rax 
-002   irmovq $1 rbx  
-003   irmovq $1 rdx  
+002   irmovq $0x1 rbx  
+003   irmovq $0x1 rdx  
 004   irmovq $0x65 rcx 
 005   irmovq $0x65 rsi
 006   loop
@@ -11,4 +11,4 @@
 010     subq rbx rcx
 011     rrmovq rsi rcx
 012     jnz loop
-013   ret
+013   halt

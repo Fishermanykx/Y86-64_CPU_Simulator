@@ -2,7 +2,7 @@
 @Description: 将Y86汇编代码转换为机器码，地址默认从1开始
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-15 11:46:49
+@LastEditTime: 2020-03-15 17:47:38
 '''
 from pprint import pprint
 
@@ -17,7 +17,6 @@ class Assembler:
     codes = inf.readlines()
     inf.close()
     self.codes = [(elem[4:]).strip() for elem in codes]
-    # pprint(self.codes)
     # 初始化寄存器表
     self.reg_table = {
         "rax": "0",
@@ -64,9 +63,31 @@ class Assembler:
     self.cc_table = {"ZF": 0, "SF": 0, "OF": 0}
     self.stat_table = ["AOK", "HLT", "ADR", "INS"]
     self.stat = "AOK"
+    # pprint(self.codes)
 
-  def ConvertSingleInstruction(self):
+  def ConvertSingleInstruction(self, ins):
+    "假设传入的均为合法指令且均已处理成列表"
     res = ''
+    op = ins[0]
+    if ins[0] == "halt" or ins[0] == "nop":
+      res += self.opcode_table[ins[0]]
+    elif op == "rrmovq":
+      res = self.opcode_table[op] + self.reg_table[ins[1]] + self.reg_table[
+          ins[2]]
+    elif op == "irmovq":
+      res = self.opcode_table[op] + self.reg_table["None"] + self.reg_table[
+          ins[2]]
+      # 符号扩展操作数至4字节
+      immediate_num = ins[1][0] * (8 - len(ins[1])) + ins[1]
+      # 转换成小端法表示
+      imm_v = ""
+      for i in range(6, 0, -2):
+        imm_v = imm_v + immediate_num[i] + immediate_num[i + 1]
+      res += imm_v
+    elif op in ["xorq", "addq", "subq"]:  # 计算
+      pass
+
+    return res
 
 
 if __name__ == "__main__":
