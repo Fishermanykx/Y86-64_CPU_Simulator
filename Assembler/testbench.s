@@ -10,5 +10,5 @@
 009   test
 010     subq rbx rcx
 011     rrmovq rsi rcx
-012     jnz loop
+012     jne loop
 013   halt
