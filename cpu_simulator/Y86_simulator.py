@@ -2,7 +2,7 @@
 @Description: 
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-16 23:58:58
+@LastEditTime: 2020-03-17 17:27:43
 '''
 from pprint import pprint
 
@@ -29,7 +29,7 @@ class CPUSimulator:
       address = line[0]
       self.instruction_file[int(address)] = line[1]
     inf.close()
-    pprint(self.instruction_file)
+    # pprint(self.instruction_file)
 
   def MainProcess(self):
     '''
@@ -86,6 +86,8 @@ class CPUSimulator:
       res.append(opcode)
       res.append(None)
       res.append(self.regFile[int(ins[3])])
+      # print(ins)
+      # print(ins[4:])
       res.append(self.ProcessImmNum(ins[4:]))
     elif op_type == 4 or op_type == 5:
       res.append(opcode)

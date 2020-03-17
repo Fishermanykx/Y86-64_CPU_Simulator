@@ -2,7 +2,7 @@
 @Description: 将Y86汇编代码转换为机器码，地址默认从1开始
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-15 20:25:04
+@LastEditTime: 2020-03-17 17:35:04
 '''
 from pprint import pprint
 
@@ -85,7 +85,7 @@ class Assembler:
       immediate_num = str(signal) * (8 - len(ins[1])) + ins[1]
       # 转换成小端法表示
       imm_v = ""
-      for i in range(6, 0, -2):
+      for i in range(6, -1, -2):
         imm_v = imm_v + immediate_num[i] + immediate_num[i + 1]
       res += imm_v
     elif op in ["jmp", "jle", "jl", "je", "jne", "jge", "jg",
@@ -95,7 +95,7 @@ class Assembler:
       immediate_num = '0' * (8 - len(ins_1)) + ins_1
       # 转换成小端法表示
       imm_v = ""
-      for i in range(6, 0, -2):
+      for i in range(6, -1, -2):
         imm_v = imm_v + immediate_num[i] + immediate_num[i + 1]
       res = self.opcode_table[ins[0]] + imm_v
     else:
@@ -128,5 +128,7 @@ class Assembler:
 
 
 if __name__ == "__main__":
-  assembler = Assembler("testbench")
+  assembler = Assembler(
+      "D:/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/Assembler/testbench"
+  )
   assembler.ConvertCodes()
