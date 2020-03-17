@@ -2,7 +2,7 @@
 @Description: 
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-17 17:27:43
+@LastEditTime: 2020-03-17 17:47:17
 '''
 from pprint import pprint
 
@@ -57,8 +57,11 @@ class CPUSimulator:
     @param {type} 
     @return: 取出的二进制指令(str)
     '''
-    ins = self.instruction_file[self.rip]
-    self.rip += 1
+    try:
+      ins = self.instruction_file[self.rip]
+      self.rip += 1
+    except:  # 若已经执行完毕，则传入气泡
+      ins = "01"
     return ins
 
   def Decode(self, ins):
@@ -78,22 +81,36 @@ class CPUSimulator:
       res = ["00"]
     elif op_type == 2:
       res.append(opcode)
-      source = self.regFile[int(ins[2])]
-      target = self.regFile[int(ins[3])]
-      res.append(source)
-      res.append(target)
+      res.append(self.regFile[int(ins[2])])
+      res.append(self.regFile[int(ins[3])])
     elif op_type == 3:
       res.append(opcode)
       res.append(None)
       res.append(self.regFile[int(ins[3])])
       # print(ins)
       # print(ins[4:])
-      res.append(self.ProcessImmNum(ins[4:]))
+      res.append(self.ConvertImmNum(ins[4:]))
     elif op_type == 4 or op_type == 5:
       res.append(opcode)
       res.append(self.regFile[int(ins[2])])
       res.append(self.regFile[int(ins[3])])
-      res.append(self.ProcessImmNum(ins[4:]))
+      res.append(self.ConvertImmNum(ins[4:]))
+    elif op_type == 6:
+      res.append(opcode)
+      res.append(self.regFile[int(ins[2])])
+      res.append(self.regFile[int(ins[3])])
+    elif op_type == 7 or op_type == 8:
+      res.append(opcode)
+      res.append(self.ConvertImmNum(ins[2:]))
+    elif op_type == 8:
+      res.append(opcode)
+    elif op_type == 10 or op_type == 11:
+      res.append(opcode)
+      res.append(self.regFile[int(ins[2])])
+      res.append(None)
+    else:
+      print("Error: Illegal instruction. Exit code: INS")
+      exit(1)
 
   def Execute(self):
     '''
@@ -128,16 +145,16 @@ class CPUSimulator:
     '''
     pass
 
-  def ProcessImmNum(self, num_str):
+  def ConvertImmNum(self, num_str):
     '''
     @description: 将用小端法表示的立即数转换为十进制整数
     @param {type} num_str {str}
     @return: int
     '''
     '''
-    >>> ProcessImmNum("10000000")
+    >>> ConvertImmNum("10000000")
     16
-    >>> ProcessImmNum("10100000")
+    >>> ConvertImmNum("10100000")
     4112
     '''
     # 将立即数反转为正常顺序
