@@ -2,7 +2,7 @@
 @Description: 
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-17 17:47:17
+@LastEditTime: 2020-03-17 20:58:25
 '''
 from pprint import pprint
 
@@ -41,8 +41,8 @@ class CPUSimulator:
 
     while True:
       ins = self.Fetch()
-      self.Decode(ins)
-      self.Execute()
+      slided_ins = self.Decode(ins)
+      self.Execute(slided_ins)
       self.Memory()
       self.WriteBack()
       if not self.has_next_ins:
@@ -87,8 +87,6 @@ class CPUSimulator:
       res.append(opcode)
       res.append(None)
       res.append(self.regFile[int(ins[3])])
-      # print(ins)
-      # print(ins[4:])
       res.append(self.ConvertImmNum(ins[4:]))
     elif op_type == 4 or op_type == 5:
       res.append(opcode)
@@ -111,15 +109,15 @@ class CPUSimulator:
     else:
       print("Error: Illegal instruction. Exit code: INS")
       exit(1)
+    return res
 
-  def Execute(self):
+  def Execute(self, slided_ins):
     '''
     @description: 执行阶段
     @param {type} 根据opcode与操作数执行指令
     @return: 计算所得的结果
     '''
     self.HazardUnit()
-    pass
 
   def Memory(self):
     '''
