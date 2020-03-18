@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-18 16:43:42
+@LastEditTime: 2020-03-18 23:54:58
 '''
 from pprint import pprint
 
@@ -17,23 +17,28 @@ class CPUSimulator:
     self.max_data_mem_size = 1024
     self.max_stack_size = 1024
     # 初始化内存各区域
-    self.instruction_memory = ''  # 指令区域
+    self.instruction_memory = []  # 指令区域
     self.data_memory = [0] * self.max_data_mem_size
     # 初始化寄存器文件(str-int)
     self.regFile = {}  # 寄存器文件，编号依次为字符0~7
     for i in range(8):
       self.regFile[str(i)] = 0
     # 初始化栈区
-    self.stack = []
+    # self.stack = []
     # 读入指令，并将其存储在instruction_memory中
     inf = open(filename + ".bin", "r")
+    instruction_memory = ''
     while True:
       line = inf.readline()
       if line == '':
         break
       line = line.strip()[4:]
-      self.instruction_memory += line
+      instruction_memory += line
     inf.close()
+    # 将指令按字节切分
+    for bit in range(0, len(instruction_memory), 2):
+      self.instruction_memory.append(instruction_memory[bit] +
+                                     instruction_memory[bit + 1])
     # print(self.instruction_memory)
     ## 初始化条件码
     self.cc = {"ZF": 0, "SF": 0, "OF": 0}  # ZF: 为0；SF: 为负；OF: 溢出
@@ -44,10 +49,16 @@ class CPUSimulator:
     self.stat_list = ["AOK", "HLT", "ADR", "INS"]
 
   def MainCycle(self):
-    # F-Register
-    predPC = 0
+    self.f_predPC_reg = 0
+    self.do_fun_related_jmp = 0  # M阶段出结果
+    self.fun_jmp_dest = 0  # 函数跳转的目的地
+    self.do_jmp = 0  # jxx指令跳转，E阶段出结果
+    self.jmp_dest = 0  # 跳转目标的目的地
     while self.stat == "AOK":
-      pass
+      # F-Register
+      self.f_predPC = self.f_predPC_reg
+      ## Fetch
+      self.Fetch()
 
   def Fetch(self):
     '''
@@ -55,12 +66,80 @@ class CPUSimulator:
     @param {type} 
     @return: 取出的二进制指令(str)
     '''
-    try:
-      ins = self.instruction_file[self.rip]
-      self.rip += 1
-    except:  # 若已经执行完毕，则传入气泡
-      ins = "01"
-    return ins
+    # select PC
+    if self.do_jmp:
+      f_pc = self.jmp_dest
+    elif self.do_fun_related_jmp:
+      f_pc = self.fun_jmp_dest
+    else:
+      f_pc = self.f_predPC
+    # 取指
+    (f_icode, f_ifun) = self.instruction_memory[f_pc]
+    cur_ins_len = 0
+    # 判断取出指令的长度(单位：byte)
+    if f_icode == 0 or f_icode == 1 or f_icode == 9:
+      cur_ins_len = 1
+    elif f_icode == 2 or f_icode == 6 or f_icode == 'A' or f_icode == 'B':
+      cur_ins_len = 2
+    elif f_icode == 7 or f_icode == 8:
+      cur_ins_len = 5
+    elif f_icode == 3 or f_icode == 4 or f_icode == 5:
+      cur_ins_len = 6
+    else:
+      self.stat = 'INS'
+      print("Error! Error type: " + self.stat +
+            "at instruction which starts from %d" % f_pc)
+      exit(1)
+    # 计算正常情况下的PC_next
+    valP = f_pc + cur_ins_len
+    f_valC = None
+    # 计算predictPC
+    if f_icode == 7 or f_icode == 8:
+      # 计算f_valC
+      imm_str = ''
+      for i in range(1, 5):
+        imm_str += self.instruction_memory[f_pc + i]
+      f_valC = self.ConvertImmNum(imm_str)
+      if f_ifun == 0:  # 无条件跳转
+        self.f_predPC_reg = f_valC
+    else:
+      self.f_predPC_reg = valP
+
+    # imem_error
+    if self.f_predPC_reg > self.max_ins_mem_size:
+      print(
+          "Error: Instruction memory exceeded! Max instruction memory size is: %d byte."
+          % self.max_ins_mem_size)
+      exit(1)
+
+    ## 取出单条指令并返回
+    res_ins = {
+        "D_stat": "AOK",
+        "D_icode": f_icode,
+        "D_ifun": f_ifun,
+        "D_rA": '',
+        "D_rB": '',
+        "D_valC": f_valC,
+        "D_valP": valP
+    }
+    if cur_ins_len == 1:
+      res_ins["D_rA"] = 'F'
+      res_ins["D_rB"] = 'F'
+    elif cur_ins_len == 2:
+      (rA, rB) = self.instruction_memory[f_pc + 1]
+      res_ins["D_rA"] = rA
+      res_ins["D_rB"] = rB
+    elif cur_ins_len == 6:
+      imm_str = ''
+      for i in range(2, 2 + 4):
+        imm_str += self.instruction_memory[f_pc + i]
+      f_valC = self.ConvertImmNum(imm_str)
+    else:
+      print("Error! Error type: " + self.stat +
+            "at instruction which starts from %d" % f_pc)
+      exit(1)
+
+    return res_ins
 
   def Decode(self, ins):
     '''

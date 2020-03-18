@@ -1,8 +1,9 @@
 '''
 @Description: 将Y86汇编代码转换为机器码，地址默认从1开始
+TODO:将其改为按字节计算地址
 @Author: Fishermanykx
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-17 17:35:04
+@LastEditTime: 2020-03-18 21:14:29
 '''
 from pprint import pprint
 
