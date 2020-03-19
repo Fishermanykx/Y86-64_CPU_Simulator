@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-19 21:26:48
+@LastEditTime: 2020-03-20 00:00:15
 '''
 from pprint import pprint
 
@@ -78,7 +78,8 @@ class CPUSimulator:
         "M_icode": 0,
         "M_cnd": 0,
         "M_valE": 0,
-        "M_valA": 0
+        "M_valA": 0,
+        "M_dst": None
     }
     W_Reg = {"W_stat": "AOK", "W_icode": 0, "W_dst": None, "W_valM": None}
     self.W_dst = self.W_valM = None
@@ -87,7 +88,8 @@ class CPUSimulator:
       ## Fetch
       self.f_predPC = self.f_predPC_reg
       D_reg_new = self.Fetch()  # 存储信息的字典
-      # Decode
+      ## Decode
+      # D-register
       self.d_stat = D_Reg["D_stat"]
       self.d_icode = D_Reg["D_icode"]
       self.d_ifun = D_Reg["D_ifun"]
@@ -95,8 +97,24 @@ class CPUSimulator:
       self.d_rB = D_Reg["D_rB"]
       self.d_valC = D_Reg["D_valC"]
       self.d_valP = D_Reg["D_valP"]
-      D_Reg = D_reg_new  # 更新D-register
+      # 更新D-register
+      D_Reg = D_reg_new
+      # decode
       E_Reg_new = self.Decode()
+
+      ## Execute
+      # E-register
+      self.e_stat = E_Reg["E_stat"]
+      self.e_icode = E_Reg["E_icode"]
+      self.e_ifun = E_Reg["E_ifun"]
+      self.e_valA = E_Reg["E_valA"]
+      self.e_valB = E_Reg["E_valB"]
+      self.e_valC = E_Reg["E_valC"]
+      self.e_dst = E_Reg["E_dst"]
+      # 更新
+      E_Reg = E_Reg_new
+      # Execute
+      M_Reg_new = self.Execute()
 
   def Fetch(self):
     '''
@@ -215,6 +233,53 @@ class CPUSimulator:
     @param {type} 根据opcode与操作数执行指令
     @return: 计算所得的结果
     '''
+    res = {
+        "M_stat": self.e_stat,
+        "M_icode": self.e_icode,
+        "M_cnd": 0,
+        "M_valE": 0,
+        "M_valA": 0,
+        "M_dst": None
+    }
+    # TODO: 根据指令类型进行相应操作
+    if self.e_icode == 6:  # 计算指令
+      res["M_dst"] = self.e_dst  # 存储结果的位置
+      if self.e_ifun == 0:
+        res["M_valE"] = self.e_valA + self.e_valB
+      elif self.e_ifun == 1:
+        res["M_valE"] = self.e_valB - self.e_valA
+      elif self.e_ifun == 2:
+        res["M_valE"] = self.e_valB & self.e_valA
+      elif self.e_ifun == 3:
+        res["M_valE"] = self.e_valB ^ self.e_valA
+      # 更新CC
+      if res["M_valE"] > 2**64 - 1:
+        self.cc["OF"] = 1
+        self.cc["SF"] = 1
+        self.cc["ZF"] = 0
+        print("Error: the result must be within 64bits!")
+        exit(1)
+      elif res["M_valE"] < 0:
+        self.cc["OF"] = 0
+        self.cc["SF"] = 1
+        self.cc["ZF"] = 0
+      elif res["M_valE"] > 0:
+        self.cc["OF"] = 0
+        self.cc["SF"] = 0
+        self.cc["ZF"] = 0
+      elif res["M_valE"] == 0:
+        self.cc["OF"] = 0
+        self.cc["SF"] = 0
+        self.cc["ZF"] = 1
+      else:
+        print("Error: Illegal calculation instruction")
+    elif self.e_icode == 3:  # irmovq
+      res["M_dst"] = self.e_dst
+      res["M_valE"] = self.e_valC
+    else:  # jxx
+      pass
+
+    return res
 
   def Memory(self):
     '''
