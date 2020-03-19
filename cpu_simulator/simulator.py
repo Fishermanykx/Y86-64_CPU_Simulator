@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-18 23:54:58
+@LastEditTime: 2020-03-19 21:26:48
 '''
 from pprint import pprint
 
@@ -54,11 +54,49 @@ class CPUSimulator:
     self.fun_jmp_dest = 0  # 函数跳转的目的地
     self.do_jmp = 0  # jxx指令跳转，E阶段出结果
     self.jmp_dest = 0  # 跳转目标的目的地
+    # 将各寄存器都初始化为0
+    D_Reg = {
+        "D_stat": "AOK",
+        "D_icode": 0,
+        "D_ifun": 1,
+        "D_rA": '',
+        "D_rB": '',
+        "D_valC": 0,
+        "D_valP": 0
+    }
+    E_Reg = {
+        "E_stat": "AOK",
+        "E_icode": 0,
+        "E_ifun": 1,
+        "E_valC": 0,
+        "E_valA": 0,
+        "E_valB": 0,
+        "E_dst": None
+    }
+    M_Reg = {
+        "M_stat": "AOK",
+        "M_icode": 0,
+        "M_cnd": 0,
+        "M_valE": 0,
+        "M_valA": 0
+    }
+    W_Reg = {"W_stat": "AOK", "W_icode": 0, "W_dst": None, "W_valM": None}
+    self.W_dst = self.W_valM = None
+
     while self.stat == "AOK":
-      # F-Register
-      self.f_predPC = self.f_predPC_reg
       ## Fetch
-      self.Fetch()
+      self.f_predPC = self.f_predPC_reg
+      D_reg_new = self.Fetch()  # 存储信息的字典
+      # Decode
+      self.d_stat = D_Reg["D_stat"]
+      self.d_icode = D_Reg["D_icode"]
+      self.d_ifun = D_Reg["D_ifun"]
+      self.d_rA = D_Reg["D_rA"]
+      self.d_rB = D_Reg["D_rB"]
+      self.d_valC = D_Reg["D_valC"]
+      self.d_valP = D_Reg["D_valP"]
+      D_Reg = D_reg_new  # 更新D-register
+      E_Reg_new = self.Decode()
 
   def Fetch(self):
     '''
@@ -141,54 +179,37 @@ class CPUSimulator:
 
     return res_ins
 
-  def Decode(self, ins):
+  def Decode(self):
     '''
     @description: 译码阶段: 将二进制指令转换为opcode与操作数(十进制int)
-    @param {type}: ins{str}
+    @param {type}: 
     @return: list
     '''
-    opcode = ins[0:2]
-    res = []
-    # 根据指令类型切分
-    op_type = int(opcode[0])
-    if op_type == 0:
-      self.has_next_ins = False
-      res = ["00"]
-    elif op_type == 1:
-      res = ["00"]
-    elif op_type == 2:
-      res.append(opcode)
-      res.append(self.regFile[int(ins[2])])
-      res.append(self.regFile[int(ins[3])])
-    elif op_type == 3:
-      res.append(opcode)
-      res.append(None)
-      res.append(self.regFile[int(ins[3])])
-      res.append(self.ConvertImmNum(ins[4:]))
-    elif op_type == 4 or op_type == 5:
-      res.append(opcode)
-      res.append(self.regFile[int(ins[2])])
-      res.append(self.regFile[int(ins[3])])
-      res.append(self.ConvertImmNum(ins[4:]))
-    elif op_type == 6:
-      res.append(opcode)
-      res.append(self.regFile[int(ins[2])])
-      res.append(self.regFile[int(ins[3])])
-    elif op_type == 7 or op_type == 8:
-      res.append(opcode)
-      res.append(self.ConvertImmNum(ins[2:]))
-    elif op_type == 8:
-      res.append(opcode)
-    elif op_type == 10 or op_type == 11:
-      res.append(opcode)
-      res.append(self.regFile[int(ins[2])])
-      res.append(None)
+    ## Regfile
+    res = {
+        "E_stat": self.d_stat,
+        "E_icode": self.d_icode,
+        "E_ifun": self.d_ifun,
+        "E_valC": self.d_valC,
+        "E_valA": 0,
+        "E_valB": 0,
+        "E_dst": None
+    }
+    # 根据指令类型选择读还是写
+    if self.W_valM:  # 若有要写回寄存器的数
+      self.regFile[self.W_dst] = self.W_valM
+      # 写回完毕后将二者复位为None
+      self.W_dst = self.W_valM = None
+    elif self.d_icode == 0 or self.d_icode == 1 or self.d_icode == 7 or self.d_icode == 8 or self.d_icode == 9:
+      pass
     else:
-      print("Error: Illegal instruction. Exit code: INS")
-      exit(1)
+      res["E_dst"] = self.d_rB  # 操作数结果保存的地址
+      res["E_valA"] = self.regFile[self.d_rA]
+      res["E_valB"] = self.regFile[self.d_rB]
+
     return res
 
-  def Execute(self, slided_ins):
+  def Execute(self):
     '''
     @description: 执行阶段
     @param {type} 根据opcode与操作数执行指令
