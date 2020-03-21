@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-20 00:00:15
+@LastEditTime: 2020-03-20 00:01:33
 '''
 from pprint import pprint
 
@@ -241,7 +241,7 @@ class CPUSimulator:
         "M_valA": 0,
         "M_dst": None
     }
-    # TODO: 根据指令类型进行相应操作
+    # TODO: 完成jxx
     if self.e_icode == 6:  # 计算指令
       res["M_dst"] = self.e_dst  # 存储结果的位置
       if self.e_ifun == 0:
