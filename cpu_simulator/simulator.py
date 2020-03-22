@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-22 11:48:24
+@LastEditTime: 2020-03-22 12:00:11
 '''
 from pprint import pprint
 
@@ -82,7 +82,7 @@ class CPUSimulator:
         "M_dst": None
     }
     W_Reg = {"W_stat": "AOK", "W_icode": 0, "W_dst": None, "W_valM": None}
-    self.W_dst = self.W_valM = None
+    self.w_dst = self.w_valM = None
 
     while self.stat == "AOK":
       ## Fetch
@@ -127,6 +127,16 @@ class CPUSimulator:
       M_Reg = M_Reg_new
       # Memory
       W_Reg_new = self.Memory()
+
+      ## Writeback
+      self.w_stat = W_Reg["W_stat"]
+      self.w_icode = W_Reg["W_icode"]
+      self.w_dst = W_Reg["W_dst"]
+      self.w_valM = W_Reg["W_valM"]
+      # 更新
+      W_Reg = W_Reg_new
+      # Writeback
+      self.WriteBack()
 
   def Fetch(self):
     '''
@@ -226,10 +236,8 @@ class CPUSimulator:
         "E_dst": None
     }
     # 根据指令类型选择读还是写
-    if self.W_valM:  # 若有要写回寄存器的数
-      self.regFile[self.W_dst] = self.W_valM
-      # 写回完毕后将二者复位为None
-      self.W_dst = self.W_valM = None
+    if self.w_valM:  # 若有要写回寄存器的数
+      pass
     elif self.d_icode == 0 or self.d_icode == 1 or self.d_icode == 7 or self.d_icode == 8 or self.d_icode == 9:
       pass
     else:
@@ -330,7 +338,10 @@ class CPUSimulator:
     @param {type} 
     @return: 将计算结果写回寄存器文件
     '''
-    pass
+    if self.w_icode == 3:
+      self.regFile[self.w_dst] = self.w_valM
+    else:
+      pass
 
   def ConvertImmNum(self, num_str):
     '''
@@ -352,12 +363,12 @@ class CPUSimulator:
 
 
 if __name__ == "__main__":
-  simulator = CPUSimulator(
-      "D:/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/cpu_simulator/testbench"
-  )  # Windows
   # simulator = CPUSimulator(
-  #     "/media/fisher/DATA/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/cpu_simulator/testbench"
-  # )  # Linux
+  #     "D:/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/cpu_simulator/testbench"
+  # )  # Windows
+  simulator = CPUSimulator(
+      "/media/fisher/DATA/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/cpu_simulator/testbench"
+  )  # Linux
   # simulator.MainProcess()
   reg = str(0)
   print(simulator.regFile[reg])  # 结果的值在rax里
