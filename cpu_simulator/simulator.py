@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-22 21:25:12
+@LastEditTime: 2020-03-22 21:44:43
 '''
 from pprint import pprint
 
@@ -98,11 +98,13 @@ class CPUSimulator:
       if not cnt_debug % 30:
         # print(self.regFile['0'])
         pass
+      if cnt_debug == 796:
+        a = 1
       if cnt_debug == 803:
         break
-      if self.regFile['0'] == 5050:
-        print(cnt_debug)
-        pprint(self.cc)
+      # if self.regFile['0'] == 5050:
+      #   print(cnt_debug)
+      #   pprint(self.cc)
       ## Debug Code
 
       ## Fetch
