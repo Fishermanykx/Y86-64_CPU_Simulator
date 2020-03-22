@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-22 11:34:19
+@LastEditTime: 2020-03-22 11:48:24
 '''
 from pprint import pprint
 
@@ -115,6 +115,18 @@ class CPUSimulator:
       E_Reg = E_Reg_new
       # Execute
       M_Reg_new = self.Execute()
+
+      ## Memory
+      # M-register
+      self.m_stat = M_Reg["M_stat"]
+      self.m_icode = M_Reg["M_icode"]
+      self.m_cnd = M_Reg["M_cnd"]
+      self.m_valA = M_Reg["M_valA"]
+      self.m_dst = M_Reg["M_dst"]
+      # 更新
+      M_Reg = M_Reg_new
+      # Memory
+      W_Reg_new = self.Memory()
 
   def Fetch(self):
     '''
@@ -293,7 +305,24 @@ class CPUSimulator:
     @param {type} 
     @return: 将执行阶段的值写回内存或从内存中取出值
     '''
-    pass
+    res = {
+        "W_stat": "AOK",
+        "W_icode": self.m_icode,
+        "W_dst": self.m_dst,
+        "W_valM": None
+    }
+
+    if self.m_icode == 3:
+      try:
+        res["W_valM"] = self.data_memory[self.m_valA]
+      except:
+        self.stat = "ADR"
+        print("Error: Wrong data address! Error code: ADR")
+        exit(1)
+    else:
+      pass
+
+    return res
 
   def WriteBack(self):
     '''
