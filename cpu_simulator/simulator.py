@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-22 12:00:11
+@LastEditTime: 2020-03-22 17:03:24
 '''
 from pprint import pprint
 
@@ -23,6 +23,7 @@ class CPUSimulator:
     self.regFile = {}  # 寄存器文件，编号依次为字符0~7
     for i in range(8):
       self.regFile[str(i)] = 0
+    self.regFile['F'] = 0
     # 初始化栈区
     # self.stack = []
     # 读入指令，并将其存储在instruction_memory中
@@ -55,12 +56,12 @@ class CPUSimulator:
     self.do_jmp = 0  # jxx指令跳转，E阶段出结果
     self.jmp_dest = 0  # 跳转目标的目的地
     # 将各寄存器都初始化为0
-    D_Reg = {
+    D_Reg = D_Reg_ori = {
         "D_stat": "AOK",
         "D_icode": 0,
         "D_ifun": 1,
-        "D_rA": '',
-        "D_rB": '',
+        "D_rA": 'F',
+        "D_rB": 'F',
         "D_valC": 0,
         "D_valP": 0
     }
@@ -83,11 +84,31 @@ class CPUSimulator:
     }
     W_Reg = {"W_stat": "AOK", "W_icode": 0, "W_dst": None, "W_valM": None}
     self.w_dst = self.w_valM = None
+    cnt = 0
+    cnt_exit = 0
 
-    while self.stat == "AOK":
+    cnt_debug = 0
+
+    while True:
+      cnt_debug += 1
+      if not cnt_debug % 10:
+        print(self.regFile['0'])
       ## Fetch
-      self.f_predPC = self.f_predPC_reg
-      D_reg_new = self.Fetch()  # 存储信息的字典
+      if self.do_jmp and cnt < 3:
+        D_reg_new = D_Reg_ori
+        cnt += 1
+      elif self.stat == "HLT" and cnt_exit < 4:
+        D_reg_new = D_Reg_ori
+        D_reg_new["D_stat"] = "HLT"
+        cnt_exit += 1
+      elif self.stat == "HLT" and cnt_exit == 4:
+        break
+      else:
+        cnt = 0
+        self.do_jmp = False
+        self.f_predPC = self.f_predPC_reg
+        D_reg_new = self.Fetch()  # 存储信息的字典
+
       ## Decode
       # D-register
       self.d_stat = D_Reg["D_stat"]
@@ -121,7 +142,7 @@ class CPUSimulator:
       self.m_stat = M_Reg["M_stat"]
       self.m_icode = M_Reg["M_icode"]
       self.m_cnd = M_Reg["M_cnd"]
-      self.m_valA = M_Reg["M_valA"]
+      self.m_valE = M_Reg["M_valE"]
       self.m_dst = M_Reg["M_dst"]
       # 更新
       M_Reg = M_Reg_new
@@ -154,6 +175,8 @@ class CPUSimulator:
     # 取指
     (f_icode, f_ifun) = self.instruction_memory[f_pc]
     cur_ins_len = 0
+    f_icode = int(f_icode)
+    f_ifun = int(f_ifun)
     # 判断取出指令的长度(单位：byte)
     if f_icode == 0 or f_icode == 1 or f_icode == 9:
       cur_ins_len = 1
@@ -161,6 +184,7 @@ class CPUSimulator:
       cur_ins_len = 2
     elif f_icode == 7 or f_icode == 8:
       cur_ins_len = 5
+      self.do_jmp = True
     elif f_icode == 3 or f_icode == 4 or f_icode == 5:
       cur_ins_len = 6
     else:
@@ -195,8 +219,8 @@ class CPUSimulator:
         "D_stat": "AOK",
         "D_icode": f_icode,
         "D_ifun": f_ifun,
-        "D_rA": '',
-        "D_rB": '',
+        "D_rA": 'F',
+        "D_rB": 'F',
         "D_valC": f_valC,
         "D_valP": valP
     }
@@ -208,13 +232,19 @@ class CPUSimulator:
       res_ins["D_rA"] = rA
       res_ins["D_rB"] = rB
     elif cur_ins_len == 6:
+      (rA, rB) = self.instruction_memory[f_pc + 1]
+      res_ins["D_rA"] = rA
+      res_ins["D_rB"] = rB
       imm_str = ''
       for i in range(2, 2 + 4):
         imm_str += self.instruction_memory[f_pc + i]
       f_valC = self.ConvertImmNum(imm_str)
+      res_ins["D_valC"] = f_valC
+    elif cur_ins_len == 5:
+      pass
     else:
       print("Error! Error type: " + self.stat +
-            "at instruction which starts from %d" % f_pc)
+            " at instruction which starts from %d" % f_pc)
       exit(1)
 
     return res_ins
@@ -235,10 +265,8 @@ class CPUSimulator:
         "E_valB": 0,
         "E_dst": None
     }
-    # 根据指令类型选择读还是写
-    if self.w_valM:  # 若有要写回寄存器的数
-      pass
-    elif self.d_icode == 0 or self.d_icode == 1 or self.d_icode == 7 or self.d_icode == 8 or self.d_icode == 9:
+    # 根据指令类型选择是否读
+    if self.d_icode == 0 or self.d_icode == 1 or self.d_icode == 7 or self.d_icode == 8 or self.d_icode == 9:
       pass
     else:
       res["E_dst"] = self.d_rB  # 操作数结果保存的地址
@@ -258,7 +286,6 @@ class CPUSimulator:
         "M_icode": self.e_icode,
         "M_cnd": 0,
         "M_valE": 0,
-        "M_valA": 0,
         "M_dst": None
     }
     if self.e_icode == 6:  # 计算指令
@@ -295,13 +322,19 @@ class CPUSimulator:
     elif self.e_icode == 3:  # irmovq
       res["M_dst"] = self.e_dst
       res["M_valE"] = self.e_valC
+    elif self.e_icode == 2:
+      res["M_valE"] = self.e_valA
     elif self.e_icode == 7:  # jxx
       if self.e_ifun == 0:  # jmp
         res["M_valE"] = self.e_valC
-      elif self.e_ifun == 4 and self.cc["ZF"]:  # jne
-        res["M_valE"] = self.e_valC
+      elif self.e_ifun == 4:  # jne
+        if self.cc["ZF"]:
+          res["M_valE"] = self.e_valC
       else:
         print("Other jxx commands")
+        print(self.e_icode)
+        print(self.e_ifun)
+        exit(1)
     else:
       pass
 
@@ -320,9 +353,11 @@ class CPUSimulator:
         "W_valM": None
     }
 
-    if self.m_icode == 3:
+    if self.m_icode == 3 or self.m_icode == 2 or self.m_icode == 6:
+      res["W_valM"] = self.m_valE
+    elif self.m_icode == 5:
       try:
-        res["W_valM"] = self.data_memory[self.m_valA]
+        res["W_valM"] = self.data_memory[self.m_valE]
       except:
         self.stat = "ADR"
         print("Error: Wrong data address! Error code: ADR")
@@ -338,7 +373,7 @@ class CPUSimulator:
     @param {type} 
     @return: 将计算结果写回寄存器文件
     '''
-    if self.w_icode == 3:
+    if self.w_icode == 2 or self.w_icode == 3 or self.w_icode == 6:
       self.regFile[self.w_dst] = self.w_valM
     else:
       pass
@@ -357,7 +392,7 @@ class CPUSimulator:
     '''
     # 将立即数反转为正常顺序
     rev_str = ""
-    for i in range(6, 0, -2):
+    for i in range(6, -1, -2):
       rev_str += (num_str[i] + num_str[i + 1])
     return int("0x" + rev_str, 16)
 
@@ -369,6 +404,6 @@ if __name__ == "__main__":
   simulator = CPUSimulator(
       "/media/fisher/DATA/Materials_Study/Computer_Science/Computer_Architecture/Exercises/Y86-64_CPU_Simulator/cpu_simulator/testbench"
   )  # Linux
-  # simulator.MainProcess()
+  simulator.MainCycle()
   reg = str(0)
   print(simulator.regFile[reg])  # 结果的值在rax里
