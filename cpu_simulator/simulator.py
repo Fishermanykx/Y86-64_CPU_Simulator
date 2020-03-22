@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-20 00:01:33
+@LastEditTime: 2020-03-22 11:34:19
 '''
 from pprint import pprint
 
@@ -241,7 +241,6 @@ class CPUSimulator:
         "M_valA": 0,
         "M_dst": None
     }
-    # TODO: 完成jxx
     if self.e_icode == 6:  # 计算指令
       res["M_dst"] = self.e_dst  # 存储结果的位置
       if self.e_ifun == 0:
@@ -276,7 +275,14 @@ class CPUSimulator:
     elif self.e_icode == 3:  # irmovq
       res["M_dst"] = self.e_dst
       res["M_valE"] = self.e_valC
-    else:  # jxx
+    elif self.e_icode == 7:  # jxx
+      if self.e_ifun == 0:  # jmp
+        res["M_valE"] = self.e_valC
+      elif self.e_ifun == 4 and self.cc["ZF"]:  # jne
+        res["M_valE"] = self.e_valC
+      else:
+        print("Other jxx commands")
+    else:
       pass
 
     return res
