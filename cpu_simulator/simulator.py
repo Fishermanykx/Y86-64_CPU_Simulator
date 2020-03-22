@@ -3,7 +3,7 @@
 @Author: Fishermanykx
 @Date: 2020-03-17 20:59:08
 @LastEditors: Fishermanykx
-@LastEditTime: 2020-03-22 17:03:24
+@LastEditTime: 2020-03-22 21:25:12
 '''
 from pprint import pprint
 
@@ -55,6 +55,7 @@ class CPUSimulator:
     self.fun_jmp_dest = 0  # 函数跳转的目的地
     self.do_jmp = 0  # jxx指令跳转，E阶段出结果
     self.jmp_dest = 0  # 跳转目标的目的地
+    self.jmp_start = 0
     # 将各寄存器都初始化为0
     D_Reg = D_Reg_ori = {
         "D_stat": "AOK",
@@ -87,14 +88,25 @@ class CPUSimulator:
     cnt = 0
     cnt_exit = 0
 
+    ## Debug Code
     cnt_debug = 0
+    ## Debug Code
 
     while True:
+      ## Debug Code
       cnt_debug += 1
-      if not cnt_debug % 10:
-        print(self.regFile['0'])
+      if not cnt_debug % 30:
+        # print(self.regFile['0'])
+        pass
+      if cnt_debug == 803:
+        break
+      if self.regFile['0'] == 5050:
+        print(cnt_debug)
+        pprint(self.cc)
+      ## Debug Code
+
       ## Fetch
-      if self.do_jmp and cnt < 3:
+      if self.jmp_start and cnt < 3:
         D_reg_new = D_Reg_ori
         cnt += 1
       elif self.stat == "HLT" and cnt_exit < 4:
@@ -105,9 +117,10 @@ class CPUSimulator:
         break
       else:
         cnt = 0
-        self.do_jmp = False
+        self.jmp_start = False
         self.f_predPC = self.f_predPC_reg
         D_reg_new = self.Fetch()  # 存储信息的字典
+        self.do_jmp = False
 
       ## Decode
       # D-register
@@ -172,11 +185,13 @@ class CPUSimulator:
       f_pc = self.fun_jmp_dest
     else:
       f_pc = self.f_predPC
+    self.pc = f_pc
     # 取指
     (f_icode, f_ifun) = self.instruction_memory[f_pc]
     cur_ins_len = 0
     f_icode = int(f_icode)
     f_ifun = int(f_ifun)
+    self.f_icode = f_icode
     # 判断取出指令的长度(单位：byte)
     if f_icode == 0 or f_icode == 1 or f_icode == 9:
       cur_ins_len = 1
@@ -184,7 +199,6 @@ class CPUSimulator:
       cur_ins_len = 2
     elif f_icode == 7 or f_icode == 8:
       cur_ins_len = 5
-      self.do_jmp = True
     elif f_icode == 3 or f_icode == 4 or f_icode == 5:
       cur_ins_len = 6
     else:
@@ -194,16 +208,20 @@ class CPUSimulator:
       exit(1)
     # 计算正常情况下的PC_next
     valP = f_pc + cur_ins_len
-    f_valC = None
+    self.f_valC = None
     # 计算predictPC
     if f_icode == 7 or f_icode == 8:
       # 计算f_valC
       imm_str = ''
       for i in range(1, 5):
         imm_str += self.instruction_memory[f_pc + i]
-      f_valC = self.ConvertImmNum(imm_str)
+      self.f_valC = self.ConvertImmNum(imm_str)
       if f_ifun == 0:  # 无条件跳转
-        self.f_predPC_reg = f_valC
+        self.do_jmp = True
+        self.f_predPC_reg = self.f_valC
+      else:
+        self.jmp_start = True
+        self.f_predPC_reg = valP
     else:
       self.f_predPC_reg = valP
 
@@ -221,7 +239,7 @@ class CPUSimulator:
         "D_ifun": f_ifun,
         "D_rA": 'F',
         "D_rB": 'F',
-        "D_valC": f_valC,
+        "D_valC": self.f_valC,
         "D_valP": valP
     }
     if cur_ins_len == 1:
@@ -238,8 +256,8 @@ class CPUSimulator:
       imm_str = ''
       for i in range(2, 2 + 4):
         imm_str += self.instruction_memory[f_pc + i]
-      f_valC = self.ConvertImmNum(imm_str)
-      res_ins["D_valC"] = f_valC
+      self.f_valC = self.ConvertImmNum(imm_str)
+      res_ins["D_valC"] = self.f_valC
     elif cur_ins_len == 5:
       pass
     else:
@@ -328,8 +346,10 @@ class CPUSimulator:
       if self.e_ifun == 0:  # jmp
         res["M_valE"] = self.e_valC
       elif self.e_ifun == 4:  # jne
-        if self.cc["ZF"]:
+        if not self.cc["ZF"]:
           res["M_valE"] = self.e_valC
+          self.do_jmp = True
+          self.jmp_dest = self.e_valC
       else:
         print("Other jxx commands")
         print(self.e_icode)
